@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { AppProvider } from './store/AppContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ImageGrid } from './components/ImageGrid';
@@ -6,18 +7,20 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { PaymentModal } from './components/PaymentModal';
 import { generatePortraits, isApiKeyConfigured } from './services/geminiService';
 import type { GeneratedImage } from './types';
+import { useI18n } from './utils/i18n';
 
 function ApiKeyConfigurationMessage() {
+  const { t } = useI18n();
   return (
     <div className="bg-red-50 text-red-900 p-8 rounded-lg max-w-4xl mx-auto my-12 font-mono text-left">
-      <h2 className="text-2xl font-bold mb-4">Configuration Needed</h2>
+      <h2 className="text-2xl font-bold mb-4">{t('error.apiKey.title')}</h2>
       <p>
-        The Google Gemini API key is missing.
+        {t('error.apiKey.desc1')}
       </p>
       <p className="mt-2">
-        To use this application, you need to configure your API key as an environment variable named <code className="bg-red-200 px-1 rounded">API_KEY</code>.
+        {t('error.apiKey.desc2')} <code className="bg-red-200 px-1 rounded">API_KEY</code>.
       </p>
-       <p className="mt-4 text-sm">Please refer to the setup instructions in the README file for more details.</p>
+       <p className="mt-4 text-sm">{t('error.apiKey.more')}</p>
     </div>
   );
 }
@@ -126,43 +129,45 @@ function App() {
 
 
   return (
-    <div className="bg-white text-gray-900 dark:bg-black dark:text-gray-100 min-h-screen font-sans">
-      <Header onUpgrade={handleUpgrade} isSubscribed={isSubscribed} />
-      <main className="container mx-auto px-4">
-        <Hero 
-          onImageUpload={handleImageUpload}
-          onGenerate={handleGenerate}
-          uploadedImagePreview={uploadedImagePreview}
-          isGenerating={isGenerating}
-          isApiKeyConfigured={keyIsConfigured}
-        />
+    <AppProvider>
+      <div className="bg-white text-gray-900 dark:bg-black dark:text-gray-100 min-h-screen font-sans">
+        <Header onUpgrade={handleUpgrade} isSubscribed={isSubscribed} />
+        <main className="container mx-auto px-4">
+          <Hero 
+            onImageUpload={handleImageUpload}
+            onGenerate={handleGenerate}
+            uploadedImagePreview={uploadedImagePreview}
+            isGenerating={isGenerating}
+            isApiKeyConfigured={keyIsConfigured}
+          />
 
-        {!keyIsConfigured && <ApiKeyConfigurationMessage />}
+          {!keyIsConfigured && <ApiKeyConfigurationMessage />}
 
-        {isGenerating && <LoadingSpinner />}
+          {isGenerating && <LoadingSpinner />}
+          
+          {generatedImages.length > 0 && (
+            <ImageGrid 
+              images={generatedImages}
+              selectedImages={selectedImages}
+              onImageSelect={handleImageSelect}
+              onDownload={handleDownload}
+              isSubscribed={isSubscribed}
+            />
+          )}
+
+          {error && !isGenerating && <p className="text-center text-red-500 my-8">{error}</p>}
+
+        </main>
         
-        {generatedImages.length > 0 && (
-          <ImageGrid 
-            images={generatedImages}
-            selectedImages={selectedImages}
-            onImageSelect={handleImageSelect}
-            onDownload={handleDownload}
-            isSubscribed={isSubscribed}
+        {isPaymentModalOpen && (
+          <PaymentModal 
+            isOpen={isPaymentModalOpen} 
+            onClose={() => setIsPaymentModalOpen(false)} 
+            onSubscriptionSuccess={handleSubscriptionSuccess} 
           />
         )}
-
-        {error && !isGenerating && <p className="text-center text-red-500 my-8">{error}</p>}
-
-      </main>
-      
-      {isPaymentModalOpen && (
-        <PaymentModal 
-          isOpen={isPaymentModalOpen} 
-          onClose={() => setIsPaymentModalOpen(false)} 
-          onSubscriptionSuccess={handleSubscriptionSuccess} 
-        />
-      )}
-    </div>
+      </div>
+    </AppProvider>
   );
 }
 
